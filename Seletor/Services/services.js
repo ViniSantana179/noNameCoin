@@ -45,11 +45,32 @@ module.exports = class SeletorService {
     validadores = validadores.data.filter(
       (validador) => validador.flag_alerta < 3
     );
-    console.log(validadores);
     return validadores;
   }
 
-  static async sendDados() {
+  static async sendDados(transacao, validador) {
     // Envia os dados para os validadores
+    const url = `http://${validador.ip}/validador`;
+    const data = transacao;
+
+    try {
+      const sendDadosResponse = await axios.post(url, data);
+
+      if (sendDadosResponse.status === 200) {
+        return sendDadosResponse;
+      } else {
+        console.error(
+          "Erro: Status de resposta não é 200",
+          sendDadosResponse.status
+        );
+        return {
+          status: sendDadosResponse.status,
+          data: sendDadosResponse.data,
+        };
+      }
+    } catch (error) {
+      console.error("Erro ao enviar dados:", error.message);
+      return { status: 500, data: "Erro ao enviar dados para o validador" };
+    }
   }
 };

@@ -21,7 +21,6 @@ app.get("/", async (req, res) => {
   try {
     // Criar o validador
     const createResponse = await seletorService.createSeletor();
-
     // console.log(createResponse.status);
 
     if (createResponse.status === 200) {
@@ -36,13 +35,15 @@ app.get("/", async (req, res) => {
             // TODO :: Selecionar os validadores
             const validadores = await seletorService.getValidadores();
 
-            data.forEach((transacao) => {
-              console.log(transacao);
-              // if (validadores) {
-
-              // }
-            });
             // TODO :: Enviar os dados para os validadores
+            for (const transacao of data) {
+              for (const validador of validadores) {
+                const result = await seletorService.sendDados(
+                  transacao,
+                  validador
+                );
+              }
+            }
           }
         }
       };

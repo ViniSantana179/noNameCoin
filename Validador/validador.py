@@ -1,12 +1,25 @@
 from flask import Flask, request, jsonify
 import datetime
+import requests
 
 app = Flask(__name__)
 
-# Simulação de chaves únicas e contas
-unique_keys = {}
 
-# Dados do banco simulados para transações e contas
+# URL do endpoint
+url = 'http://127.0.0.1:3000/validador/create'
+
+payload = {'nome': 'teste 1', 'ip': '127.0.0.1:5002', 'moedas': 55}
+
+# Enviando a requisição GET
+response = requests.post(url, json=payload)
+
+# Verificando o status da resposta
+if response.status_code == 200:
+    print('Sucesso!', response.json())
+else:
+    print('Erro ao fazer a requisição', response.status_code)
+
+
 accounts = {
     "user1": {"balance": 1000, "last_transaction_time": None, "transaction_count": 0},
     "user2": {"balance": 500, "last_transaction_time": None, "transaction_count": 0},
@@ -17,7 +30,7 @@ transactions = [
         "id": 1,
         "sender": "user1",
         "receiver": "user2",
-        "amount": 100,
+        "amount": 1,
         "fee": 1,
         "timestamp": "2024-06-01T12:00:00",
         "status": 0,
@@ -27,14 +40,10 @@ transactions = [
 
 @app.route('/validador', methods=['POST'])
 def validador():
+    print("Transacao")
     data = request.json
-    transaction_id = data['transaction_id']
-    validator_id = data['validator_id']
-    unique_key = data['unique_key']
-    
-    # Verificar chave única
-    if unique_key != unique_keys.get(validator_id):
-        return jsonify({"status": 2, "message": "Chave única inválida"}), 400
+    print(data)
+    transaction_id = data['id']
 
     # Encontrar a transação
     transaction = next((t for t in transactions if t["id"] == transaction_id), None)
@@ -49,19 +58,20 @@ def validador():
 
     # Verificar saldo suficiente
     if accounts[sender]['balance'] < amount + fee:
+        print("400 aqui")
         return jsonify({"status": 2, "message": "Saldo insuficiente"}), 400
 
-    # Verificar se o horário da transação é válido
-    if timestamp > current_time or (accounts[sender]['last_transaction_time'] and timestamp <= accounts[sender]['last_transaction_time']):
-        return jsonify({"status": 2, "message": "Horário da transação inválido"}), 400
+    # # Verificar se o horário da transação é válido
+    # if timestamp > current_time or (accounts[sender]['last_transaction_time'] and timestamp <= accounts[sender]['last_transaction_time']):
+    #     return jsonify({"status": 2, "message": "Horário da transação inválido"}), 400
 
     # Verificar o limite de transações por minuto
-    if accounts[sender]['last_transaction_time'] and (current_time - accounts[sender]['last_transaction_time']).seconds < 60:
-        accounts[sender]['transaction_count'] += 1
-        if accounts[sender]['transaction_count'] > 100:
-            return jsonify({"status": 2, "message": "Limite de transações por minuto excedido"}), 400
-    else:
-        accounts[sender]['transaction_count'] = 1
+    # if accounts[sender]['last_transaction_time'] and (current_time - accounts[sender]['last_transaction_time']).seconds < 60:
+    #     accounts[sender]['transaction_count'] += 1
+    #     if accounts[sender]['transaction_count'] > 100:
+    #         return jsonify({"status": 2, "message": "Limite de transações por minuto excedido"}), 400
+    # else:
+    #     accounts[sender]['transaction_count'] = 1
 
     accounts[sender]['balance'] -= amount + fee
     accounts[sender]['last_transaction_time'] = current_time
@@ -69,32 +79,6 @@ def validador():
     accounts[transaction['receiver']]['balance'] += amount
 
     return jsonify({"status": 1, "message": "Transação validada com sucesso"}), 200
-
-@app.route('/validador/register_key', methods=['POST'])
-def register_key():
-    data = request.json
-    validator_id = data['validator_id']
-    unique_key = data['unique_key']
-    unique_keys[validator_id] = unique_key
-    return jsonify({"status": 1, "message": "Chave registrada com sucesso"}), 200
-
-@app.route('/validador/register_transaction', methods=['POST'])
-def register_transaction():
-    data = request.json
-    transactions.append(data)
-    return jsonify({"status": 1, "message": "Transação registrada com sucesso"}), 200
-
-@app.route('/validador/keys', methods=['GET'])
-def get_keys():
-    return jsonify(unique_keys)
-
-@app.route('/validador/accounts', methods=['GET'])
-def get_accounts():
-    return jsonify(accounts)
-
-@app.route('/validador/transactions', methods=['GET'])
-def get_transactions():
-    return jsonify(transactions)
 
 
 

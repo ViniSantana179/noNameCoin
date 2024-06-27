@@ -71,7 +71,7 @@ with app.app_context():
 
 @app.route("/")
 def index():
-    return jsonify(['API sem interface do banco!'])
+    return render_template("index.html")
 
 @app.route('/cliente', methods = ['GET'])
 def ListarCliente():
@@ -203,19 +203,43 @@ def ListarTransacoes():
         return jsonify(transacoes)
     
     
-@app.route('/transacoes/<int:rem>/<int:reb>/<int:valor>', methods = ['POST'])
-def CriaTransacao(rem, reb, valor):
-    if request.method=='POST':
-        objeto = Transacao(remetente=rem, recebedor=reb,valor=valor,status=0,horario=datetime.now())
-        db.session.add(objeto)
-        db.session.commit()
+# @app.route('/transacoes/<int:rem>/<int:reb>/<int:valor>', methods = ['POST'])
+# def CriaTransacao(rem, reb, valor):
+#     if request.method=='POST':
+#         objeto = Transacao(remetente=rem, recebedor=reb,valor=valor,status=0,horario=datetime.now())
+#         db.session.add(objeto)
+#         db.session.commit()
 		
-        # seletores = Seletor.query.all()
-        # for seletor in seletores:
-        #     #Implementar a rota /localhost/<ipSeletor>/transacoes
-        #     url = seletor.ip + '/transacoes/'
-        #     requests.post(url, data=jsonify(objeto))
-        return jsonify(objeto)
+#         # seletores = Seletor.query.all()
+#         # for seletor in seletores:
+#         #     #Implementar a rota /localhost/<ipSeletor>/transacoes
+#         #     url = seletor.ip + '/transacoes/'
+#         #     requests.post(url, data=jsonify(objeto))
+#         return jsonify(objeto)
+#     else:
+#         return jsonify(['Method Not Allowed'])
+
+@app.route('/transacoes', methods = ['POST'])
+def CriaTransacao():
+    if request.method == 'POST':
+        remetente = request.form['remetente']
+        recebedor = request.form['recebedor']
+        valor = request.form['valor']
+
+        if remetente and recebedor and valor:
+            objeto = Transacao(remetente=int(remetente), recebedor=int(recebedor), valor=int(valor), status=0, horario=datetime.now())
+            db.session.add(objeto)
+            db.session.commit()
+
+            seletores = Seletor.query.all()
+            for seletor in seletores:
+                # Implementar a rota /localhost/<ipSeletor>/transacoes
+                url = f"http://{seletor.ip}/transacoes/"
+                requests.post(url, json=objeto)
+
+            return jsonify(objeto)
+        else:
+            return jsonify({'message': 'Dados incompletos'}), 400
     else:
         return jsonify(['Method Not Allowed'])
 
@@ -310,6 +334,11 @@ def ApagarValidador(id):
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template('page_not_found.html'), 404
+
+
+@app.route('/criar_transacao')
+def criar_transacao():
+    return render_template('create_transaction.html')
 
 if __name__ == "__main__":
 	with app.app_context():
