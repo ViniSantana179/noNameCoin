@@ -81,13 +81,19 @@ def ListarCliente():
         clientes = Cliente.query.all()
         return jsonify(clientes)  
 
-@app.route('/cliente/<string:nome>/<string:senha>/<int:qtdMoeda>', methods = ['POST'])
-def InserirCliente(nome, senha, qtdMoeda):
-    if request.method=='POST' and nome != '' and senha != '' and qtdMoeda != '':
-        objeto = Cliente(nome=nome, senha=senha, qtdMoeda=qtdMoeda)
-        db.session.add(objeto)
-        db.session.commit()
-        return jsonify(objeto)
+@app.route('/cliente', methods = ['POST'])
+def InserirCliente():
+    if request.method == 'POST':
+        nome = request.form['name']
+        senha = request.form['senha']
+        qtdMoeda = request.form['quant_moedas']
+        if nome and senha and qtdMoeda:
+            objeto = Cliente(nome=nome, senha=senha, qtdMoeda=qtdMoeda)
+            db.session.add(objeto)
+            db.session.commit()
+            return jsonify(objeto)
+        else:
+            return jsonify({'message': 'Dados incompletos'}), 400
     else:
         return jsonify(['Method Not Allowed'])
 
@@ -204,26 +210,40 @@ def ListarTransacoes():
 @app.route('/transacoes', methods = ['POST'])
 def CriaTransacao():
     if request.method == 'POST':
-        remetente = request.form['remetente']
-        recebedor = request.form['recebedor']
-        valor = request.form['valor']
+        remetente = request.form.get('remetente')
+        recebedor = request.form.get('recebedor')
+        valor = request.form.get('valor')
 
         if remetente and recebedor and valor:
-            objeto = Transacao(remetente=int(remetente), recebedor=int(recebedor), valor=int(valor), status=0, horario=datetime.now())
-            db.session.add(objeto)
-            db.session.commit()
+            if remetente == recebedor:
+                return jsonify({'message': 'Remetente e recebedor devem ser clientes diferentes'}), 400
+            
+            remetente = int(remetente)
+            recebedor = int(recebedor)
+            valor = int(valor)
+            
+            # Verificar se o recebedor existe no banco de dados
+            remetente_existe = Cliente.query.get(remetente)
+            recebedor_existe = Cliente.query.get(recebedor)
 
-            seletores = Seletor.query.all()
-            for seletor in seletores:
-                # Implementar a rota /localhost/<ipSeletor>/transacoes
-                url = f"http://{seletor.ip}/transacoes/"
-                requests.post(url, json=objeto)
+            if remetente_existe and recebedor_existe:
+                if remetente_existe.qtdMoeda >= valor:
+                    remetente_existe.qtdMoeda -= valor
+                    recebedor_existe.qtdMoeda += valor
 
-            return jsonify(objeto)
+                    objeto = Transacao(remetente=int(remetente), recebedor=int(recebedor), valor=int(valor), status=0, horario=datetime.now())
+                    db.session.add(objeto)
+                    db.session.commit()
+
+                    return jsonify(objeto)
+                else:
+                    return jsonify({'message': 'Saldo Insuficiente'}), 400
+            else:
+                return jsonify({'message': 'ID do recebedor não encontrado no banco de dados'}), 400
         else:
             return jsonify({'message': 'Dados incompletos'}), 400
     else:
-        return jsonify(['Method Not Allowed'])
+        return jsonify({'message': 'Method Not Allowed'}), 405
 
 @app.route('/transacoes/<int:id>', methods = ['GET'])
 def UmaTransacao(id):
@@ -327,6 +347,10 @@ def page_not_found(error):
 @app.route('/criar_transacao')
 def criar_transacao():
     return render_template('create_transaction.html')
+
+@app.route('/criar_cliente')
+def criar_cliente():
+    return render_template('create_cliente.html')
 
 if __name__ == "__main__":
 	with app.app_context():
