@@ -43,12 +43,14 @@ class Validador(db.Model):
     ip: str
     qtdMoeda: int
     flag_alerta: int
+    transaction_key: str
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(20), unique=False, nullable=False)
     ip = db.Column(db.String(15), unique=False, nullable=False)
     qtdMoeda = db.Column(db.Integer, unique=False, nullable=False)
     flag_alerta = db.Column(db.Integer, unique=False, nullable=False)
+    transaction_key = db.Column(db.String(20), unique=True, nullable=False)
 
 @dataclass
 class Transacao(db.Model):
@@ -153,16 +155,12 @@ def UmSeletor(id):
     else:
         return jsonify(['Method Not Allowed'])
 
-@app.route('/seletor/<int:id>/<string:nome>/<string:ip>/<int:moedas>', methods=["POST"])
-def EditarSeletor(id, nome, ip, moedas):
+@app.route('/seletor/<int:id>/<int:moedas>', methods=["POST"])
+def EditarSeletor(id, moedas):
     if request.method=='POST':
         try:
-            varNome = nome
-            varIp = ip
             seletor = Seletor.query.filter_by(id=id).first()
             db.session.commit()
-            seletor.nome = varNome
-            seletor.ip = varIp
             seletor.qtdMoeda = moedas
             db.session.commit()
             return jsonify(seletor)
@@ -192,7 +190,8 @@ def ApagarSeletor(id):
 @app.route('/hora', methods = ['GET'])
 def horario():
     if(request.method == 'GET'):
-        objeto = datetime.now()
+        objeto = int(datetime.now().timestamp())
+        print(objeto)
         return jsonify(objeto)
 		
 @app.route('/transacoes', methods = ['GET'])
@@ -201,23 +200,6 @@ def ListarTransacoes():
         transacoes = Transacao.query.all()
         print("AQUIIIi") 
         return jsonify(transacoes)
-    
-    
-# @app.route('/transacoes/<int:rem>/<int:reb>/<int:valor>', methods = ['POST'])
-# def CriaTransacao(rem, reb, valor):
-#     if request.method=='POST':
-#         objeto = Transacao(remetente=rem, recebedor=reb,valor=valor,status=0,horario=datetime.now())
-#         db.session.add(objeto)
-#         db.session.commit()
-		
-#         # seletores = Seletor.query.all()
-#         # for seletor in seletores:
-#         #     #Implementar a rota /localhost/<ipSeletor>/transacoes
-#         #     url = seletor.ip + '/transacoes/'
-#         #     requests.post(url, data=jsonify(objeto))
-#         return jsonify(objeto)
-#     else:
-#         return jsonify(['Method Not Allowed'])
 
 @app.route('/transacoes', methods = ['POST'])
 def CriaTransacao():
@@ -270,16 +252,26 @@ def EditaTransacao(id, status):
         return jsonify(['Method Not Allowed'])
 
 
+# Ajusta para trazer as transacoes pelo id do remetente		
+@app.route('/transacoes/remetente/<int:remetente>', methods=['POST'])
+def listar_transacoes(remetente):
+    if request.method == 'POST':
+        # Filtrando transações pelo remetente
+        transacoes =  transacoes = db.session.query(Transacao).filter_by(remetente=remetente).all()
+        return jsonify(transacoes[-2])
+    else:
+        return jsonify(['Method Not Allowed']), 405
+
 @app.route('/validador', methods = ['GET'])
 def ListarValidador():
     if(request.method == 'GET'):
         validadores = Validador.query.all()
         return jsonify(validadores)  
 
-@app.route('/validador/<string:nome>/<string:ip>/<int:moeda>/<int:alertas>', methods = ['POST'])
-def InserirValidador(nome, ip, moeda, alertas):
+@app.route('/validador/<string:nome>/<string:ip>/<int:moeda>/<int:alertas>/<string:transaction_key>', methods = ['POST'])
+def InserirValidador(nome, ip, moeda, alertas, transaction_key):
     if request.method=='POST' and nome != '' and ip != '':
-        validador = Validador(nome=nome, ip=ip, qtdMoeda=moeda, flag_alerta=alertas)
+        validador = Validador(nome=nome, ip=ip, qtdMoeda=moeda, flag_alerta=alertas, transaction_key=transaction_key)
         db.session.add(validador)
         db.session.commit()
         return jsonify(validador)
@@ -294,16 +286,12 @@ def UmValidador(id):
     else:
         return jsonify(['Method Not Allowed'])
 
-@app.route('/validador/<int:id>/<string:nome>/<string:ip>/<int:moedas>', methods=["POST"])
-def EditarValidador(id, nome, ip, moedas):
+@app.route('/validador/<int:id>/<int:moedas>', methods=["POST"])
+def EditarValidador(id, moedas):
     if request.method=='POST':
         try:
-            varNome = nome
-            varIp = ip
             validador = Validador.query.filter_by(id=id).first()
             db.session.commit()
-            validador.nome = varNome
-            validador.ip = varIp
             validador.qtdMoeda = moedas
             db.session.commit()
             return jsonify(validador)

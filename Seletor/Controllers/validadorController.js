@@ -1,11 +1,11 @@
 const seletorService = require("../Services/services.js");
+const helper = require("../Helper/helper.js");
 
 module.exports = class validadorController {
   static async createValidator(req, res) {
-    console.log(req.body);
     const { nome, ip, moedas } = req.body;
-    console.log(moedas);
 
+    // Regra de no minimo de 50 moedas
     if (moedas <= 50) {
       return res
         .json({
@@ -18,7 +18,8 @@ module.exports = class validadorController {
       nome,
       ip,
       moedas,
-      0
+      0,
+      helper.gerarChaveAleatoria()
     );
     if (createValidatorResponse.status == 200) {
       return res

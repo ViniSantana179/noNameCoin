@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { json } = require("express");
+const { json, response } = require("express");
 
 module.exports = class SeletorService {
   static async getDados() {
@@ -30,10 +30,10 @@ module.exports = class SeletorService {
     return createResponse;
   }
 
-  static async createValidator(nome, ip, qtdMoedas, alertas) {
+  static async createValidator(nome, ip, qtdMoedas, alertas, transaction_key) {
     // Criar o validador
     const createResponse = await axios.post(
-      `http://127.0.0.1:5000/validador/${nome}/${ip}/${qtdMoedas}/${alertas}`
+      `http://127.0.0.1:5000/validador/${nome}/${ip}/${qtdMoedas}/${alertas}/${transaction_key}`
     );
     return createResponse;
   }
@@ -45,13 +45,17 @@ module.exports = class SeletorService {
     validadores = validadores.data.filter(
       (validador) => validador.flag_alerta < 3
     );
+
     return validadores;
   }
 
   static async sendDados(transacao, validador) {
     // Envia os dados para os validadores
     const url = `http://${validador.ip}/validador`;
-    const data = transacao;
+    const data = {
+      transaction: transacao,
+      transaction_key: validador.transaction_key,
+    };
 
     try {
       const sendDadosResponse = await axios.post(url, data);
@@ -73,4 +77,26 @@ module.exports = class SeletorService {
       return { status: 500, data: "Erro ao enviar dados para o validador" };
     }
   }
+
+  static async updateTransactionStatus(id, status) {
+    const url = `http://127.0.0.1:5000/transacoes/${id}/${status}`;
+    try {
+      const response = axios.post(url);
+      console.log(response);
+    } catch (error) {
+      console.log(`Erro ao atualizar transacao. ${error}`);
+    }
+  }
+
+  static async recompensaSeletor(id, moedas) {
+    const url = `http://127.0.0.1:5000/seletor/${id}/${moedas}`;
+    try {
+      const response = axios.post(url);
+      console.log(response);
+    } catch (error) {
+      console.log(`Erro ao atualizar transacao. ${error}`);
+    }
+  }
+
+  static async recompensaValidador(id, moedas) {}
 };
