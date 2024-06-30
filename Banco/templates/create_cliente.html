@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Cliente</title>
+    <link rel="stylesheet" href="static/css/cliente.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Criar Cliente</h1>
+        <form id="clienteForm" action="/cliente" method="POST">
+            <label for="name">Nome:</label>
+            <input type="text" id="name" name="name" required><br><br>
+            <label for="senha">Senha:</label>
+            <input type="password" id="senha" name="senha" required><br><br>
+            <label for="quant_moedas">Quantidade de moedas:</label>
+            <input type="number" id="quant_moedas" name="quant_moedas" required><br><br>
+            <button type="submit">Criar Cliente</button>
+        </form>
+    </div>
+    <script>
+        document.getElementById('myForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Impede o envio do formulário
+            window.location.href = '/cliente';
+        });
+    </script>
+</body>
+</html>
