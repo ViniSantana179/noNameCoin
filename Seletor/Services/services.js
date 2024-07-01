@@ -82,7 +82,7 @@ module.exports = class SeletorService {
     const url = `http://127.0.0.1:5000/transacoes/${id}/${status}`;
     try {
       const response = axios.post(url);
-      console.log(response);
+      return response;
     } catch (error) {
       console.log(`Erro ao atualizar transacao. ${error}`);
     }
@@ -92,11 +92,29 @@ module.exports = class SeletorService {
     const url = `http://127.0.0.1:5000/seletor/${id}/${moedas}`;
     try {
       const response = axios.post(url);
-      console.log(response);
+      return response;
     } catch (error) {
       console.log(`Erro ao atualizar transacao. ${error}`);
     }
   }
 
-  static async recompensaValidador(id, moedas) {}
+  static async recompensaValidador(id, moedas) {
+    const url = `http://127.0.0.1:5000/validador/${id}/${moedas}`;
+    try {
+      const response = axios.post(url);
+      return response;
+    } catch (error) {
+      console.log(`Erro ao atualizar transacao. ${error}`);
+    }
+  }
+
+  static async punirValidador(id, moedas) {
+    const url = `http://127.0.0.1:5000/validador/alerta/${id}`;
+    try {
+      const response = axios.post(url);
+      return response;
+    } catch (error) {
+      console.log(`Erro ao atualizar transacao. ${error}`);
+    }
+  }
 };

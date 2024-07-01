@@ -2,24 +2,38 @@ from flask import Flask, request, jsonify
 from datetime import datetime
 import time
 import requests
+import sys
+
 
 app = Flask(__name__)
 
 
+# Verifica se o número correto de argumentos foi passado
+if len(sys.argv) != 4:
+    print("Uso: python script.py <porta>")
+    sys.exit(1)
+    
+# Pega o segundo argumento da linha de comando
+nome = sys.argv[1]
+porta = sys.argv[2]
+moedas = sys.argv[3]
+
+print(porta)
+
 # # URL do endpoint
-# url = 'http://127.0.0.1:3000/validador/create'
+url = 'http://127.0.0.1:3000/validador/create'
 
-# payload = {'nome': 'teste 1', 'ip': '127.0.0.1:5002', 'moedas': 55}
+payload = {'nome': nome, 'ip': f'127.0.0.1:{porta}', 'moedas': moedas}
 
-# # Enviando a requisição GET
-# # Criando meu validador
-# response_validator = requests.post(url, json=payload)
+# Enviando a requisição GET
+# Criando meu validador
+response_validator = requests.post(url, json=payload)
 
-# # Verificando o status da resposta
-# if response_validator.status_code == 200:
-#     print('Sucesso!', response_validator.json())
-# else:
-#     print('Erro ao fazer a requisição', response_validator.status_code)
+# Verificando o status da resposta
+if response_validator.status_code == 200:
+    print('Sucesso!', response_validator.json())
+else:
+    print('Erro ao fazer a requisição', response_validator.status_code)
 
 
 @app.route('/validador', methods=['POST'])
@@ -43,11 +57,11 @@ def validador():
         remetente = response_remetente.json()
 
     # Pegando as ultimas transacoes do remetente
+    last_transaction_time = ''
     response_last_transaction = requests.post(f'http://127.0.0.1:5000/transacoes/remetente/{remetente_id}')
     if(response_last_transaction.status_code == 200):
         object_last_transaction = response_last_transaction.json()
         last_transaction_time = timestamp_transform(object_last_transaction['horario'])
-
 
     # ====================== REGRAS ======================
     # Verificar saldo suficiente do cliente
@@ -85,4 +99,4 @@ def get_data():
     return
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5002)
+    app.run(debug=False, port=porta)

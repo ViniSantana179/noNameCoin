@@ -6,6 +6,7 @@ const PORT = 3000;
 
 // Routes
 const validadorRouter = require("./Routes/validadorRoute.js");
+const helper = require("./Helper/helper.js");
 
 app.use(
   express.urlencoded({
@@ -20,9 +21,8 @@ app.use("/validador", validadorRouter);
 async function run() {
   try {
     // Criar o validador
-    const createResponse = await seletorService.createSeletor();
-
-    if (createResponse.status === 200) {
+    const seletor = await seletorService.createSeletor();
+    if (seletor.status === 200) {
       // Loop para checar os dados a cada 2 segundos
       const checkData = async () => {
         while (true) {
@@ -37,13 +37,13 @@ async function run() {
               // TODO :: Selecionar os validadores
               const validadores = await seletorService.getValidadores();
               // Validadando o numero minimo de validadores e se estao em numero impar de validacoes (mantendo voto de minerva)
-              if (validadores.length > 3 && validadores.length % 2) {
+              if (validadores.length >= 3 && validadores.length % 2) {
                 // TODO :: Enviar os dados para os validadores
                 for (const transacao of data) {
                   let status = 0;
                   let valida = 0;
+                  let invalida = 0;
                   let resultados = [];
-                  console.log(transacao);
                   for (const validador of validadores) {
                     const result = await seletorService.sendDados(
                       transacao,
@@ -58,19 +58,30 @@ async function run() {
                     if (validador.transaction_key == result.data.key) {
                       // Contabilizando as respostas dos validadores
                       if (result.data.status == 1) valida += 1;
-                      else valida += -1;
+                      else invalida += 1;
                     } else {
-                      valida += -1;
+                      invalida += 1;
                     }
                   }
 
                   // Validando o status da minha transacao
-                  if (valida > 0) {
+                  if (valida > invalida) {
                     status = 1;
-                    // Recompensa do seleter (1.5% do to valor da transacao)
-                    let recompensaTotal = transacao.valor * 0.015;
-                    console.log(recompensaTotal);
-                  } else status = 2;
+                    helper.recompensar(
+                      status,
+                      transacao.valor,
+                      resultados,
+                      seletor
+                    );
+                  } else if (valida < invalida) {
+                    status = 2;
+                    helper.recompensar(
+                      status,
+                      transacao.valor,
+                      resultados,
+                      seletor
+                    );
+                  }
 
                   // Atualizando minha transacao
                   // await seletorService.updateTransactionStatus(

@@ -17,38 +17,38 @@ class Cliente(db.Model):
     id: int
     nome: str
     senha: int
-    qtdMoeda: int
+    qtdMoeda: float
 
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(20), unique=False, nullable=False)
     senha = db.Column(db.String(20), unique=False, nullable=False)
-    qtdMoeda = db.Column(db.Integer, unique=False, nullable=False)
+    qtdMoeda = db.Column(db.Float, unique=False, nullable=False)
 
 @dataclass
 class Seletor(db.Model):
     id: int
     nome: str
     ip: str
-    qtdMoeda: int
+    qtdMoeda: float
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(20), unique=False, nullable=False)
     ip = db.Column(db.String(15), unique=False, nullable=False)
-    qtdMoeda = db.Column(db.Integer, unique=False, nullable=False)
+    qtdMoeda = db.Column(db.Float, unique=False, nullable=False)
 
 @dataclass
 class Validador(db.Model):
     id: int
     nome: str
     ip: str
-    qtdMoeda: int
+    qtdMoeda: float
     flag_alerta: int
     transaction_key: str
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(20), unique=False, nullable=False)
     ip = db.Column(db.String(15), unique=False, nullable=False)
-    qtdMoeda = db.Column(db.Integer, unique=False, nullable=False)
+    qtdMoeda = db.Column(db.Float, unique=False, nullable=False)
     flag_alerta = db.Column(db.Integer, unique=False, nullable=False)
     transaction_key = db.Column(db.String(20), unique=True, nullable=False)
 
@@ -57,14 +57,14 @@ class Transacao(db.Model):
     id: int
     remetente: int
     recebedor: int
-    valor: int
+    valor: float
     horario : datetime
     status: int
     
     id = db.Column(db.Integer, primary_key=True)
     remetente = db.Column(db.Integer, unique=False, nullable=False)
     recebedor = db.Column(db.Integer, unique=False, nullable=False)
-    valor = db.Column(db.Integer, unique=False, nullable=False)
+    valor = db.Column(db.Float, unique=False, nullable=False)
     horario = db.Column(db.DateTime, unique=False, nullable=False)
     status = db.Column(db.Integer, unique=False, nullable=False)
 
@@ -161,13 +161,13 @@ def UmSeletor(id):
     else:
         return jsonify(['Method Not Allowed'])
 
-@app.route('/seletor/<int:id>/<int:moedas>', methods=["POST"])
+@app.route('/seletor/<int:id>/<float:moedas>', methods=["POST"])
 def EditarSeletor(id, moedas):
     if request.method=='POST':
         try:
             seletor = Seletor.query.filter_by(id=id).first()
             db.session.commit()
-            seletor.qtdMoeda = moedas
+            seletor.qtdMoeda += moedas
             db.session.commit()
             return jsonify(seletor)
         except Exception as e:
@@ -204,7 +204,6 @@ def horario():
 def ListarTransacoes():
     if(request.method == 'GET'):
         transacoes = Transacao.query.all()
-        print("AQUIIIi") 
         return jsonify(transacoes)
 
 @app.route('/transacoes', methods = ['POST'])
@@ -220,7 +219,7 @@ def CriaTransacao():
             
             remetente = int(remetente)
             recebedor = int(recebedor)
-            valor = int(valor)
+            valor = float(valor)
             
             # Verificar se o recebedor existe no banco de dados
             remetente_existe = Cliente.query.get(remetente)
@@ -231,7 +230,7 @@ def CriaTransacao():
                     remetente_existe.qtdMoeda -= valor
                     recebedor_existe.qtdMoeda += valor
 
-                    objeto = Transacao(remetente=int(remetente), recebedor=int(recebedor), valor=int(valor), status=0, horario=datetime.now())
+                    objeto = Transacao(remetente=int(remetente), recebedor=int(recebedor), valor=float(valor), status=0, horario=datetime.now())
                     db.session.add(objeto)
                     db.session.commit()
 
@@ -278,7 +277,10 @@ def listar_transacoes(remetente):
     if request.method == 'POST':
         # Filtrando transações pelo remetente
         transacoes =  transacoes = db.session.query(Transacao).filter_by(remetente=remetente).all()
-        return jsonify(transacoes[-2])
+        if (len(transacoes) > 0):
+            return jsonify(transacoes[-2])
+        else:
+            return jsonify([])
     else:
         return jsonify(['Method Not Allowed']), 405
 
@@ -306,13 +308,30 @@ def UmValidador(id):
     else:
         return jsonify(['Method Not Allowed'])
 
-@app.route('/validador/<int:id>/<int:moedas>', methods=["POST"])
+@app.route('/validador/<int:id>/<float:moedas>', methods=["POST"])
 def EditarValidador(id, moedas):
     if request.method=='POST':
         try:
             validador = Validador.query.filter_by(id=id).first()
             db.session.commit()
-            validador.qtdMoeda = moedas
+            validador.qtdMoeda += moedas
+            db.session.commit()
+            return jsonify(validador)
+        except Exception as e:
+            data={
+                "message": "Atualização não realizada"
+            }
+            return jsonify(data)
+    else:
+        return jsonify(['Method Not Allowed'])
+    
+@app.route('/validador/alerta/<int:id>', methods=["POST"])
+def PunirValidador(id):
+    if request.method=='POST':
+        try:
+            validador = Validador.query.filter_by(id=id).first()
+            db.session.commit()
+            validador.flag_alerta += 1
             db.session.commit()
             return jsonify(validador)
         except Exception as e:
