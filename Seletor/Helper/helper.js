@@ -16,17 +16,11 @@ module.exports = class helper {
   static async recompensar(status, valor, resultados, seletor) {
     // Validando o status da minha transacao
 
-    console.log(status);
-    console.log(valor);
-    console.log(seletor.data);
-    console.log(resultados);
-
-    status = status;
     let totValidadoresRecompensa = 0;
 
     // Contabilizar os validadores que acertaram para divir a recompensa
     resultados.map((ele) => {
-      if (ele.resultado_status == 1) totValidadoresRecompensa += 1;
+      if (ele.resultado_status == status) totValidadoresRecompensa += 1;
     });
 
     // Recompensa do seletor (1.5% do to valor da transacao)
@@ -46,13 +40,19 @@ module.exports = class helper {
 
     // Recompensando os validadores que acertaram e punindo os que erraram
     resultados.map(async (ele) => {
-      if (ele.resultado_status == 1) {
+      if (ele.resultado_status == status) {
         await seletorService.recompensaValidador(
           ele.id_validador,
           recompensaTotalValidador.toFixed(2)
         );
       } else {
-        await seletorService.punirValidador(ele.id_validador);
+        const validadorPunido = await seletorService.punirValidador(
+          ele.id_validador
+        );
+
+        if (validadorPunido.data.flag_alerta == 3) {
+          await seletorService.banirValidador(ele.id_validador);
+        }
       }
     });
   }

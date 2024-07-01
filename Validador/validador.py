@@ -59,7 +59,7 @@ def validador():
     # Pegando as ultimas transacoes do remetente
     last_transaction_time = ''
     response_last_transaction = requests.post(f'http://127.0.0.1:5000/transacoes/remetente/{remetente_id}')
-    if(response_last_transaction.status_code == 200):
+    if(response_last_transaction.status_code == 200 and len(response_last_transaction.json()) > 0):
         object_last_transaction = response_last_transaction.json()
         last_transaction_time = timestamp_transform(object_last_transaction['horario'])
 

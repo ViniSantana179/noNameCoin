@@ -117,4 +117,14 @@ module.exports = class SeletorService {
       console.log(`Erro ao atualizar transacao. ${error}`);
     }
   }
+
+  static async banirValidador(id) {
+    const url = `http://127.0.0.1:5000/validador/${id}`;
+    try {
+      const response = axios.delete(url);
+      return response;
+    } catch (error) {
+      console.log(`Erro ao atualizar transacao. ${error}`);
+    }
+  }
 };

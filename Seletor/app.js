@@ -37,6 +37,7 @@ async function run() {
               // TODO :: Selecionar os validadores
               const validadores = await seletorService.getValidadores();
               // Validadando o numero minimo de validadores e se estao em numero impar de validacoes (mantendo voto de minerva)
+              console.log(validadores.length);
               if (validadores.length >= 3 && validadores.length % 2) {
                 // TODO :: Enviar os dados para os validadores
                 for (const transacao of data) {
@@ -66,6 +67,7 @@ async function run() {
 
                   // Validando o status da minha transacao
                   if (valida > invalida) {
+                    // Transacao aprovada
                     status = 1;
                     helper.recompensar(
                       status,
@@ -74,6 +76,7 @@ async function run() {
                       seletor
                     );
                   } else if (valida < invalida) {
+                    // Transacao nao aprovada
                     status = 2;
                     helper.recompensar(
                       status,
@@ -91,7 +94,7 @@ async function run() {
                 }
               } else {
                 console.log(
-                  "LOG :: Não há validadores suficientes. Colocando a transação em espera."
+                  "LOG :: Não há validadores suficientes ou ha um numero par de validadores. Colocando a transação em espera."
                 );
               }
             } else {

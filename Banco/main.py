@@ -44,6 +44,7 @@ class Validador(db.Model):
     qtdMoeda: float
     flag_alerta: int
     transaction_key: str
+    banido: bool
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(20), unique=False, nullable=False)
@@ -51,6 +52,7 @@ class Validador(db.Model):
     qtdMoeda = db.Column(db.Float, unique=False, nullable=False)
     flag_alerta = db.Column(db.Integer, unique=False, nullable=False)
     transaction_key = db.Column(db.String(20), unique=True, nullable=False)
+    banido = db.Column(db.Boolean, unique=False, nullable=False)
 
 @dataclass
 class Transacao(db.Model):
@@ -197,7 +199,6 @@ def ApagarSeletor(id):
 def horario():
     if(request.method == 'GET'):
         objeto = int(datetime.now().timestamp())
-        print(objeto)
         return jsonify(objeto)
 		
 @app.route('/transacoes', methods = ['GET'])
@@ -277,7 +278,7 @@ def listar_transacoes(remetente):
     if request.method == 'POST':
         # Filtrando transações pelo remetente
         transacoes =  transacoes = db.session.query(Transacao).filter_by(remetente=remetente).all()
-        if (len(transacoes) > 0):
+        if (len(transacoes) > 1):
             return jsonify(transacoes[-2])
         else:
             return jsonify([])
@@ -293,7 +294,7 @@ def ListarValidador():
 @app.route('/validador/<string:nome>/<string:ip>/<int:moeda>/<int:alertas>/<string:transaction_key>', methods = ['POST'])
 def InserirValidador(nome, ip, moeda, alertas, transaction_key):
     if request.method=='POST' and nome != '' and ip != '':
-        validador = Validador(nome=nome, ip=ip, qtdMoeda=moeda, flag_alerta=alertas, transaction_key=transaction_key)
+        validador = Validador(nome=nome, ip=ip, qtdMoeda=moeda, flag_alerta=alertas, transaction_key=transaction_key, banido=False)
         db.session.add(validador)
         db.session.commit()
         return jsonify(validador)
@@ -345,12 +346,13 @@ def PunirValidador(id):
 @app.route('/validador/<int:id>', methods = ['DELETE'])
 def ApagarValidador(id):
     if(request.method == 'DELETE'):
-        objeto = Seletor.query.get(id)
-        db.session.delete(objeto)
+        validador = Validador.query.filter_by(id=id).first()
+        db.session.commit()
+        validador.banido = True
         db.session.commit()
 
         data={
-            "message": "Validador Deletado com Sucesso"
+            "message": "Validador Banido com Sucesso"
         }
 
         return jsonify(data)
