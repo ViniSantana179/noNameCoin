@@ -35,11 +35,20 @@ async function run() {
             // Se houver transacoes, eu repasso para os validadadores
             if (data.length > 0) {
               // TODO :: Selecionar os validadores
-              const validadores = await seletorService.getValidadores();
+              let validadores = await seletorService.getValidadores();
               // Validadando o numero minimo de validadores e se estao em numero impar de validacoes (mantendo voto de minerva)
               if (validadores.length >= 3 && validadores.length % 2) {
+                // Escolhendo os validadores de acordo com o total de moedas
+                validadores = helper.selecionarValidadores(validadores);
                 // TODO :: Enviar os dados para os validadores
                 for (const transacao of data) {
+                  console.log(
+                    `==========> [${new Date()}] :: LOG :: (Transacao[${
+                      transacao.id
+                    }]) remetente[${transacao.remetente}] transferindo [${
+                      transacao.valor
+                    }] para recebedor[${transacao.recebedor}]`
+                  );
                   let status = 0;
                   let valida = 0;
                   let invalida = 0;
@@ -54,6 +63,13 @@ async function run() {
                       id_validador: validador.id,
                       resultado_status: result.data.status,
                     });
+
+                    console.log(
+                      `==========> [${new Date()}] :: LOG :: Validador [${
+                        validador.nome
+                      }] validou como [${result.data.status}]`
+                    );
+
                     // Validando se a key que o validador retornou e a mesma que foi dada pelo seletor
                     if (validador.transaction_key == result.data.key) {
                       // Contabilizando as respostas dos validadores
@@ -86,19 +102,19 @@ async function run() {
                   }
 
                   // Atualizando minha transacao
-                  // await seletorService.updateTransactionStatus(
-                  //   transacao.id,
-                  //   status
-                  // );
+                  await seletorService.updateTransactionStatus(
+                    transacao.id,
+                    status
+                  );
                 }
               } else {
                 console.log(
-                  "LOG :: Não há validadores suficientes ou ha um numero par de validadores. Colocando a transação em espera."
+                  `==========> [${new Date()}] :: LOG :: Não há validadores suficientes ou ha um numero par de validadores. Colocando a transação em espera.`
                 );
               }
             } else {
               console.log(
-                `LOG :: Sem transacoes no momento ... (${new Date()})`
+                `==========> [${new Date()}] :: LOG :: Sem transacoes no momento ...`
               );
             }
           }

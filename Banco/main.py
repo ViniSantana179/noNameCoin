@@ -368,7 +368,7 @@ def EditarValidador(id, moedas):
     else:
         return jsonify(['Method Not Allowed'])
     
-@app.route('/validador/desban/<int:id>/<float:moedas>', methods=["POST"])
+@app.route('/validador/desban/<int:id>/<int:moedas>', methods=["POST"])
 def DesbanirValidador(id, moedas):
     if request.method=='POST':
         try:

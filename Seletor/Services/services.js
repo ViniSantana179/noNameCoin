@@ -147,10 +147,14 @@ module.exports = class SeletorService {
   static async desbanirValidor(id, moedas) {
     try {
       // Reinserir o validador na rede
-      const validadorResponse = await axios.get(
+      const validadorResponse = await axios.post(
         `http://127.0.0.1:5000/validador/desban/${id}/${moedas}`
       );
-      console.log(validadorResponse);
+      console.log(
+        `==========> [${new Date()}] :: LOG :: Validador de ID [${
+          validadorResponse.data.id
+        }] foi desbanido.`
+      );
       return true;
     } catch (error) {
       console.log("Erro ao desbanir validador", error);
