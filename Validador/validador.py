@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import requests
 import sys
@@ -65,26 +65,13 @@ def validador():
 
     # ====================== REGRAS ======================
     # Verificar saldo suficiente do cliente
-    if remetente['qtdMoeda'] < valor:
+    if remetente['qtdMoeda'] < valor or remetente['qtdMoeda'] < (valor + (valor * 0.015)):
         return jsonify({"status": 2, "message": "Saldo insuficiente"}), 400
 
 
     # Verificar se o horário da transação é válido
     if trasaction_time > server_time and (trasaction_time > last_transaction_time if last_transaction_time != '' else True):
         return jsonify({"status": 2, "message": "Horário da transação inválido"}), 400
-
-    # Verificar o limite de transações por minuto
-    # if accounts[remetente]['last_transaction_time'] and (current_time - accounts[remetente]['last_transaction_time']).seconds < 60:
-    #     accounts[remetente]['transaction_count'] += 1
-    #     if accounts[remetente]['transaction_count'] > 100:
-    #         return jsonify({"status": 2, "message": "Limite de transações por minuto excedido"}), 400
-    # else:
-    #     accounts[remetente]['transaction_count'] = 1
-
-    # accounts[remetente]['balance'] -= valor + fee
-    # accounts[remetente]['last_transaction_time'] = current_time
-
-    # accounts[transaction['receiver']]['balance'] += valor
 
     return jsonify({"status": 1, "message": "Transação validada com sucesso", "key": transaction_key}), 200
 
@@ -93,7 +80,9 @@ def timestamp_transform(data):
     # Tratando horarios da transacao, transformando em timestamp 
     date_obj = datetime.strptime(data, '%a, %d %b %Y %H:%M:%S GMT')
     trasaction_time = int( time.mktime(date_obj.timetuple()))
+    print(trasaction_time)
     return trasaction_time
+
 
 def get_data():
     return

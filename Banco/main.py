@@ -1,10 +1,8 @@
-from time import time
-from flask import Flask, request, redirect, render_template, jsonify
+from flask import Flask, request, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from dataclasses import dataclass
-from datetime import date, datetime
-import requests
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -227,8 +225,38 @@ def CriaTransacao():
             recebedor_existe = Cliente.query.get(recebedor)
 
             if remetente_existe and recebedor_existe:
-                if remetente_existe.qtdMoeda >= valor:
-                    remetente_existe.qtdMoeda -= valor
+                valor_com_taxa = valor + (valor * 0.015)    # Calcular o valor com a taxa de 1.5%
+
+                if remetente_existe.qtdMoeda >= valor_com_taxa:
+                     # Verificar transações no último minuto
+                    now = datetime.now()
+                    one_minute_ago = now - timedelta(minutes=1) #calcular diferenças entre datas.
+                    # Contar o número de transações no último minuto
+                    transacoes_ultimo_minuto = Transacao.query.filter(
+                        Transacao.remetente == remetente,
+                        Transacao.horario >= one_minute_ago,
+                        Transacao.horario < now
+                    ).count()
+
+                    print(f'TESTE1234 {transacoes_ultimo_minuto}')
+
+                    # Verificar transações no próximo minuto
+                    next_minute_start = now + timedelta(seconds=1) # manipular datas e horas
+                    next_minute_end = now + timedelta(minutes=1)
+                    # Contar o número de transações no próximo minuto
+                    transacoes_proximo_minuto = Transacao.query.filter(
+                        Transacao.remetente == remetente,
+                        Transacao.horario >= next_minute_start,
+                        Transacao.horario < next_minute_end
+                    ).count()
+
+                    print(f'TESTE12 {transacoes_ultimo_minuto}')
+
+                    #Valida as 100 transações no último minuto e qualquer transação no próximo minuto.
+                    if transacoes_ultimo_minuto >= 100 or transacoes_proximo_minuto > 0:
+                        return jsonify({'message': 'Remetente excedeu o limite de transações. Tente novamente mais tarde.'}), 400
+                    
+                    remetente_existe.qtdMoeda -= valor_com_taxa
                     recebedor_existe.qtdMoeda += valor
 
                     objeto = Transacao(remetente=int(remetente), recebedor=int(recebedor), valor=float(valor), status=0, horario=datetime.now())
