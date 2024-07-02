@@ -43,14 +43,20 @@ class Validador(db.Model):
     flag_alerta: int
     transaction_key: str
     banido: bool
+    totValidacoes: int
+    totBanimentos: int
+    saldoAnterior: int
     
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(20), unique=False, nullable=False)
     ip = db.Column(db.String(15), unique=False, nullable=False)
     qtdMoeda = db.Column(db.Float, unique=False, nullable=False)
-    flag_alerta = db.Column(db.Integer, unique=False, nullable=False)
-    transaction_key = db.Column(db.String(20), unique=True, nullable=False)
-    banido = db.Column(db.Boolean, unique=False, nullable=False)
+    flag_alerta = db.Column(db.Integer, unique=False, nullable=False)       # Contabiliza o total de alertas que o validador recebeu
+    transaction_key = db.Column(db.String(20), unique=True, nullable=False) # Chave de transacao entrgue ao validor
+    banido = db.Column(db.Boolean, unique=False, nullable=False)            # Total de banimentos do validador
+    totValidacoes = db.Column(db.Integer, unique=False, nullable=False)     # Controla o total de validacoes coerentes
+    totBanimentos = db.Column(db.Integer, unique=False, nullable=False)     # Controla o toal de vezes em que o validador foi banido
+    saldoAnterior = db.Column(db.Integer, unique=False, nullable=False)     # Saldo travado dos validadores banidos
 
 @dataclass
 class Transacao(db.Model):
@@ -322,20 +328,23 @@ def ListarValidador():
 @app.route('/validador/<string:nome>/<string:ip>/<int:moeda>/<int:alertas>/<string:transaction_key>', methods = ['POST'])
 def InserirValidador(nome, ip, moeda, alertas, transaction_key):
     if request.method=='POST' and nome != '' and ip != '':
-        validador = Validador(nome=nome, ip=ip, qtdMoeda=moeda, flag_alerta=alertas, transaction_key=transaction_key, banido=False)
+        validador = Validador(nome=nome, ip=ip, qtdMoeda=moeda, flag_alerta=alertas, transaction_key=transaction_key, banido=False, totValidacoes=0, totBanimentos=0, saldoAnterior=0)
         db.session.add(validador)
         db.session.commit()
         return jsonify(validador)
     else:
         return jsonify(['Method Not Allowed'])
 
-@app.route('/validador/<int:id>', methods = ['GET'])
-def UmValidador(id):
-    if(request.method == 'GET'):
-        validador = Validador.query.get(id)
-        return jsonify(validador)
+@app.route('/validador/<string:nome>', methods=['GET'])
+def UmValidador(nome):
+    if request.method == 'GET':
+        validador = Validador.query.filter_by(nome=nome).first()
+        if validador:
+            return jsonify(validador)
+        else:
+            return jsonify({'error': 'Validador not found'}), 404
     else:
-        return jsonify(['Method Not Allowed'])
+        return jsonify({'error': 'Method Not Allowed'}), 405
 
 @app.route('/validador/<int:id>/<float:moedas>', methods=["POST"])
 def EditarValidador(id, moedas):
@@ -344,6 +353,32 @@ def EditarValidador(id, moedas):
             validador = Validador.query.filter_by(id=id).first()
             db.session.commit()
             validador.qtdMoeda += moedas
+            validador.totValidacoes += 1 
+            # Caso o validador atinja 10000 transacoes uma flag e retirada
+            if(validador.totValidacoes == 10000):
+                if(validador.flag_alerta > 0):
+                    validador.flag_alerta -= 1
+            db.session.commit()
+            return jsonify(validador)
+        except Exception as e:
+            data={
+                "message": "Atualização não realizada"
+            }
+            return jsonify(data)
+    else:
+        return jsonify(['Method Not Allowed'])
+    
+@app.route('/validador/desban/<int:id>/<float:moedas>', methods=["POST"])
+def DesbanirValidador(id, moedas):
+    if request.method=='POST':
+        try:
+            validador = Validador.query.filter_by(id=id).first()
+            db.session.commit()
+            validador.qtdMoeda = moedas
+            validador.totValidacoes = 0 
+            validador.banido=False
+            validador.flag_alerta=0
+            validador.saldoAnterior=0
             db.session.commit()
             return jsonify(validador)
         except Exception as e:
@@ -361,6 +396,8 @@ def PunirValidador(id):
             validador = Validador.query.filter_by(id=id).first()
             db.session.commit()
             validador.flag_alerta += 1
+            if (validador.totValidacoes > 0):
+                validador.totValidacoes -= 1
             db.session.commit()
             return jsonify(validador)
         except Exception as e:
@@ -377,6 +414,9 @@ def ApagarValidador(id):
         validador = Validador.query.filter_by(id=id).first()
         db.session.commit()
         validador.banido = True
+        validador.totBanimentos += 1
+        validador.saldoAnterior = validador.qtdMoeda
+        validador.qtdMoeda = 0
         db.session.commit()
 
         data={

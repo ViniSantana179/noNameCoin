@@ -23,11 +23,15 @@ module.exports = class SeletorService {
   }
 
   static async createSeletor() {
-    // Criar o seletor
-    const createResponse = await axios.post(
-      "http://127.0.0.1:5000/seletor/sel1/127.0.0.1:3000"
-    );
-    return createResponse;
+    try {
+      // Criar o seletor
+      const createResponse = await axios.post(
+        "http://127.0.0.1:5000/seletor/sel1/127.0.0.1:3000"
+      );
+      return createResponse;
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   static async createValidator(nome, ip, qtdMoedas, alertas, transaction_key) {
@@ -125,6 +129,32 @@ module.exports = class SeletorService {
       return response;
     } catch (error) {
       console.log(`Erro ao atualizar transacao. ${error}`);
+    }
+  }
+
+  static async getValidador(nome) {
+    try {
+      // Verificar se o seletor ja existe (caso seja um seletor que ja foi banido)
+      const validadorResponse = await axios.get(
+        `http://127.0.0.1:5000/validador/${nome}`
+      );
+      return { validadorJaExite: true, validador: validadorResponse.data };
+    } catch (error) {
+      return { validadorJaExite: false, validador: null };
+    }
+  }
+
+  static async desbanirValidor(id, moedas) {
+    try {
+      // Reinserir o validador na rede
+      const validadorResponse = await axios.get(
+        `http://127.0.0.1:5000/validador/desban/${id}/${moedas}`
+      );
+      console.log(validadorResponse);
+      return true;
+    } catch (error) {
+      console.log("Erro ao desbanir validador", error);
+      return false;
     }
   }
 };

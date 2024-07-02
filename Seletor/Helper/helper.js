@@ -14,10 +14,7 @@ module.exports = class helper {
   }
 
   static async recompensar(status, valor, resultados, seletor) {
-    // Validando o status da minha transacao
-
     let totValidadoresRecompensa = 0;
-
     // Contabilizar os validadores que acertaram para divir a recompensa
     resultados.map((ele) => {
       if (ele.resultado_status == status) totValidadoresRecompensa += 1;

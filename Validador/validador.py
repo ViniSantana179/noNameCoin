@@ -9,16 +9,23 @@ app = Flask(__name__)
 
 
 # Verifica se o número correto de argumentos foi passado
-if len(sys.argv) != 4:
+if len(sys.argv) != 5:
     print("Uso: python script.py <porta>")
     sys.exit(1)
-    
+
 # Pega o segundo argumento da linha de comando
 nome = sys.argv[1]
 porta = sys.argv[2]
 moedas = sys.argv[3]
+impostor = sys.argv[4]
 
-print(porta)
+res1 = 1
+res2 = 2
+
+if (impostor.lower()[0] == "s"):
+    print("LOG :: Logando um validador (impostor)")
+    res1 = 2
+    res2 = 1
 
 # # URL do endpoint
 url = 'http://127.0.0.1:3000/validador/create'
@@ -66,14 +73,14 @@ def validador():
     # ====================== REGRAS ======================
     # Verificar saldo suficiente do cliente
     if remetente['qtdMoeda'] < valor or remetente['qtdMoeda'] < (valor + (valor * 0.015)):
-        return jsonify({"status": 2, "message": "Saldo insuficiente"}), 400
+        return jsonify({"status": res2, "message": "Saldo insuficiente"}), 400
 
 
     # Verificar se o horário da transação é válido
     if trasaction_time > server_time and (trasaction_time > last_transaction_time if last_transaction_time != '' else True):
-        return jsonify({"status": 2, "message": "Horário da transação inválido"}), 400
+        return jsonify({"status": res2, "message": "Horário da transação inválido"}), 400
 
-    return jsonify({"status": 1, "message": "Transação validada com sucesso", "key": transaction_key}), 200
+    return jsonify({"status": res1, "message": "Transação validada com sucesso", "key": transaction_key}), 200
 
 
 def timestamp_transform(data):

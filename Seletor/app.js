@@ -37,7 +37,6 @@ async function run() {
               // TODO :: Selecionar os validadores
               const validadores = await seletorService.getValidadores();
               // Validadando o numero minimo de validadores e se estao em numero impar de validacoes (mantendo voto de minerva)
-              console.log(validadores.length);
               if (validadores.length >= 3 && validadores.length % 2) {
                 // TODO :: Enviar os dados para os validadores
                 for (const transacao of data) {
